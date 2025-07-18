@@ -1,7 +1,7 @@
 #pragma once
 #include "SFML/Graphics.hpp"
 
-namespace SnakeGame
+namespace Arkanoid
 {
 	class Game;
 

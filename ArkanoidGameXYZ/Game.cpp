@@ -7,18 +7,18 @@
 #include "GameStateMainMenu.h"
 #include "GameStateRecords.h"
 
-namespace SnakeGame
+namespace Arkanoid
 {
 	void Game::Init()
 	{
 		// Generate fake records table
 		recordsTable =
 		{
-			{"John", MAX_APPLES / 2},
-			{"Jane", MAX_APPLES / 3 },
-			{"Alice", MAX_APPLES / 4 },
-			{"Bob", MAX_APPLES / 5 },
-			{"Clementine", MAX_APPLES / 5 },
+			{"John", 100 / 2},
+			{"Jane", 100 / 3 },
+			{"Alice", 100 / 4 },
+			{"Bob", 100 / 5 },
+			{"Clementine", 100 / 5 },
 		};
 
 		gameStateChangeType = GameStateChangeType::None;

@@ -1,11 +1,11 @@
 #include "Application.h"
 #include <cstdlib>
 
-namespace SnakeGame
+namespace Arkanoid
 {
 
 	Application::Application(const std::string& gameName) :
-		window(sf::VideoMode(SnakeGame::SCREEN_WIDTH, SnakeGame::SCREEN_HEGHT), "SnakeGame")
+		window(sf::VideoMode(Arkanoid::SCREEN_WIDTH, Arkanoid::SCREEN_HEIGHT), "SnakeGame")
 	{
 		// Init random number generator
 		unsigned int seed = (unsigned int)time(nullptr); // Get current time as seed. You can also use any other number to fix randomization

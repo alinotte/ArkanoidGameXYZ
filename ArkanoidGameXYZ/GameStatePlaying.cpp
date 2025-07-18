@@ -3,40 +3,30 @@
 #include "Text.h"
 #include <assert.h>
 #include <sstream>
+#include <algorithm>
 
-namespace SnakeGame
+namespace Arkanoid
 {
 	void GameStatePlaying::Init(Game& game)
 	{	
 		// Init game resources (terminate if error)
-		LoadSnakeTextures(snake);
-		assert(appleTexture.loadFromFile(TEXTURES_PATH + "Apple.png"));
-		assert(rockTexture.loadFromFile(TEXTURES_PATH + "Rock.png"));
 		assert(font.loadFromFile(FONTS_PATH + "Roboto-Regular.ttf"));
-		assert(eatAppleSoundBuffer.loadFromFile(SOUNDS_PATH + "AppleEat.wav"));
-		assert(gameOverSoundBuffer.loadFromFile(SOUNDS_PATH + "Death.wav"));
 
 		// Init background
-		background.setSize(sf::Vector2f(SCREEN_WIDTH, SCREEN_HEGHT));
+		background.setSize(sf::Vector2f(SCREEN_WIDTH, SCREEN_HEIGHT));
 		background.setPosition(0.f, 0.f);
 		background.setFillColor(sf::Color(0, 200, 0));
 
-		// Init snake
-		InitSnake(snake);
+		paddle.Init(sf::Vector2f(SCREEN_WIDTH / 2.f - PADDLE_WIDTH / 2.f,
+			SCREEN_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_MARGIN));
+		paddle.SetSpeed(PADDLE_SPEED);
 
-		// Init apple
-		InitSprite(apple, APPLE_SIZE, APPLE_SIZE, appleTexture);
-		SetSpriteRandomPosition(apple, background.getGlobalBounds(), snake.body);
+		ball.Init(sf::Vector2f(paddle.GetPosition().x + PADDLE_WIDTH / 2,
+			paddle.GetPosition().y - BALL_RADIUS));
+		ball.SetSpeed(BALL_INITIAL_SPEED);
+		ball.SetStuckToPaddle(true);
 
-		// Init rocks
-		rocks.resize(ROCKS_COUNT);
-		for (sf::Sprite& rock : rocks) {
-			InitSprite(rock, ROCK_SIZE, ROCK_SIZE, rockTexture);
-			SetSpriteRandomPosition(rock, background.getGlobalBounds(), snake.body);
-		}
-
-		numEatenApples = 0;
-
+		// init UI
 		scoreText.setFont(font);
 		scoreText.setCharacterSize(24);
 		scoreText.setFillColor(sf::Color::Yellow);
@@ -44,12 +34,8 @@ namespace SnakeGame
 		inputHintText.setFont(font);
 		inputHintText.setCharacterSize(24);
 		inputHintText.setFillColor(sf::Color::White);
-		inputHintText.setString("Use arrow keys to move, ESC to pause");
+		inputHintText.setString("Use arrow keys to move, SPACE to launch, ESC to pause");
 		inputHintText.setOrigin(GetTextOrigin(inputHintText, { 1.f, 0.f }));
-
-		// Init sounds
-		eatAppleSound.setBuffer(eatAppleSoundBuffer);
-		gameOverSound.setBuffer(gameOverSoundBuffer);
 	}
 
 	void GameStatePlaying::Shutdown(Game& game)
@@ -65,64 +51,85 @@ namespace SnakeGame
 			{
 				game.PushGameState(GameStateType::ExitDialog, false);
 			}
+
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && ball.IsStuckToPaddle())
+			{
+				ball.SetStuckToPaddle(false);
+				ball.SetVelocity({ 0.5f, -0.5f });
+			}
 		}
+	}
+
+	void GameStatePlaying::CheckCollisions(Game& game)
+	{
+		sf::Vector2f ballVelocity = ball.GetVelocity();
+
+		// ball with window bounds
+		if (ball.GetPosition().x - BALL_RADIUS <= 0 ||
+			ball.GetPosition().x + BALL_RADIUS >= SCREEN_WIDTH)
+		{
+			ballVelocity.x = -ballVelocity.x;
+			ball.SetVelocity(ballVelocity);
+		}
+
+		if (ball.GetPosition().y - BALL_RADIUS <= 0)
+		{
+			ballVelocity.y = -ballVelocity.y;
+			ball.SetVelocity(ballVelocity);
+		}
+
+		// ball lost
+		if (ball.GetPosition().y + BALL_RADIUS >= SCREEN_HEIGHT)
+		{
+			lives--;
+			if (lives <= 0)
+			{
+				// game over
+				game.PushGameState(GameStateType::GameOver, false);
+			}
+			else
+			{
+				ResetBall();
+				ResetPaddle();
+			}
+		}
+
+		// ball with paddle
+		if (ball.GetGlobalBounds().intersects(paddle.GetGlobalBounds()))
+		{
+			// Add some directional influence based on where ball hits paddle
+			float hitPosition = (ball.GetPosition().x - (paddle.GetPosition().x + PADDLE_WIDTH / 2.f)) / (PADDLE_WIDTH / 2.f);
+			float angle = hitPosition * MAX_BOUNCE_ANGLE;
+
+			ball.SetVelocity({ std::sin(angle) * ball.GetSpeed(), -std::abs(std::cos(angle) * ball.GetSpeed()) });
+		}
+	}
+
+	void GameStatePlaying::ResetBall()
+	{
+		ball.SetPosition(sf::Vector2f((paddle.GetPosition().x + PADDLE_WIDTH / 2.f),
+			paddle.GetPosition().y - BALL_RADIUS));
+		ball.SetStuckToPaddle(true);
+	}
+
+	void GameStatePlaying::ResetPaddle()
+	{
+		paddle.SetPosition(sf::Vector2f(SCREEN_WIDTH / 2.f - PADDLE_WIDTH / 2.f,
+			SCREEN_HEIGHT - PADDLE_HEIGHT - PADDLE_BOTTOM_MARGIN));
 	}
 
 	void GameStatePlaying::Update(Game& game, float timeDelta)
 	{
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+		paddle.Update(timeDelta);
+		if (ball.IsStuckToPaddle())
 		{
-			snake.direction = SnakeDirection::Up;
+			ball.StickToPaddle(paddle.GetPosition());
 		}
-		else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+		else
 		{
-			snake.direction = SnakeDirection::Right;
+			ball.Update(timeDelta);
+			CheckCollisions(game);
 		}
-		else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-		{
-			snake.direction = SnakeDirection::Down;
-		}
-		else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
-		{
-			snake.direction = SnakeDirection::Left;
-		}
-
-		// Update snake
-		MoveSnake(snake, timeDelta);
-
-		if (CheckSpriteIntersection(*snake.head, apple)) {
-			eatAppleSound.play();
-
-			GrowSnake(snake);
-
-			// Increase eaten apples counter
-			numEatenApples++;
-			
-			// Move apple to a new random position
-			SetSpriteRandomPosition(apple, background.getGlobalBounds(), snake.body);
-
-			// Increase snake speed
-			if ((std::uint8_t)game.GetOptions() & (std::uint8_t)GameOptions::WithAcceleration) {
-				snake.speed += ACCELERATION;
-			}
-		}
-
-		bool isGameFinished = !((std::uint8_t)game.GetOptions() & (std::uint8_t)GameOptions::InfiniteApples);
-		
-		if (isGameFinished
-			|| !HasSnakeCollisionWithRect(snake, background.getGlobalBounds()) // Check collision with screen border
-			|| CheckSnakeCollisionWithHimself(snake)		// Check collision with screen border
-			|| FullCheckCollisions(rocks.begin(), rocks.end(), *snake.head)) // Check collision with rocks
-		{
-			gameOverSound.play();
-
-			// Find snake in records table and update his score
-			game.AddRecord(PLAYER_NAME, numEatenApples);
-
-			game.PushGameState(GameStateType::GameOver, false);
-		}
-
-		scoreText.setString("Apples eaten: " + std::to_string(numEatenApples));
 	}
 
 	void GameStatePlaying::Draw(Game& game, sf::RenderWindow& window)
@@ -130,12 +137,8 @@ namespace SnakeGame
 		// Draw background
 		window.draw(background);
 
-		// Draw snake
-		DrawSnake(snake, window);
-		// Draw apples
-		DrawSprite(apple, window);
-		// Draw rocks
-		DrawSprites(rocks.begin(), rocks.end(), window);
+		paddle.Draw(window);
+		ball.Draw(window);
 
 		scoreText.setOrigin(GetTextOrigin(scoreText, { 0.f, 0.f }));
 		scoreText.setPosition(10.f, 10.f);

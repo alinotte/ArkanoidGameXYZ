@@ -3,7 +3,7 @@
 #include "Text.h"
 #include <list>
 
-namespace SnakeGame
+namespace Arkanoid
 {
 	class MenuItem
 	{

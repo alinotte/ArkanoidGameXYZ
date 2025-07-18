@@ -5,7 +5,7 @@
 #include <assert.h>
 #include <sstream>
 
-namespace SnakeGame
+namespace Arkanoid
 {
 	void GameStateRecords::Init(Game& game)
 	{

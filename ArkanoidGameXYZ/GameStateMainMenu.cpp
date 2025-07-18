@@ -2,7 +2,7 @@
 #include "Game.h"
 #include <assert.h>
 
-namespace SnakeGame
+namespace Arkanoid
 {
 	void GameStateMainMenu::Init(Game& game)
 	{
