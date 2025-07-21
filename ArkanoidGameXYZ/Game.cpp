@@ -6,6 +6,7 @@
 #include "GameStatePauseMenu.h"
 #include "GameStateMainMenu.h"
 #include "GameStateRecords.h"
+#include "GameStateWin.h"
 
 namespace Arkanoid
 {
@@ -176,6 +177,12 @@ namespace Arkanoid
 			((GameStateRecords*)state.data)->Init(*this);
 			break;
 		}
+		case GameStateType::Win:
+		{
+			state.data = new GameStateWin();
+			((GameStateWin*)state.data)->Init(*this);
+			break;
+		}
 		default:
 			assert(false); // We want to know if we forgot to implement new game state
 			break;
@@ -216,6 +223,12 @@ namespace Arkanoid
 			delete (GameStateRecords*)state.data;
 			break;
 		}
+		case GameStateType::Win:
+		{
+			((GameStateWin*)state.data)->Shutdown(*this);
+			delete ((GameStateWin*)state.data);
+			break;
+		}
 		default:
 			assert(false); // We want to know if we forgot to implement new game state
 			break;
@@ -253,6 +266,11 @@ namespace Arkanoid
 			((GameStateRecords*)state.data)->HandleWindowEvent(*this, event);
 			break;
 		}
+		case GameStateType::Win:
+		{
+			((GameStateWin*)state.data)->HandleWindowEvent(*this, event);
+			break;
+		}
 		default:
 			assert(false); // We want to know if we forgot to implement new game state
 			break;
@@ -288,6 +306,9 @@ namespace Arkanoid
 			((GameStateRecords*)state.data)->Update(*this, timeDelta);
 			break;
 		}
+		case GameStateType::Win:
+			((GameStateWin*)state.data)->Update(*this, timeDelta);
+			break;
 		default:
 			assert(false); // We want to know if we forgot to implement new game state
 			break;
@@ -321,6 +342,11 @@ namespace Arkanoid
 		case GameStateType::Records:
 		{
 			((GameStateRecords*)state.data)->Draw(*this, window);
+			break;
+		}
+		case GameStateType::Win:
+		{
+			((GameStateWin*)state.data)->Draw(*this, window);
 			break;
 		}
 		default:

@@ -6,7 +6,7 @@ using namespace Arkanoid;
 
 int main()
 {
-	Application app("SnakeGame");
+	Application app("ArkanoidGame");
 	app.Run();
 
 	return 0;

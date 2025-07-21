@@ -40,6 +40,8 @@ namespace Arkanoid
 		}
 
 		shape.move(direction * speed * deltaTime, 0.f);
+
+		CheckBounds();
 	}
 
 	void Paddle::Draw(sf::RenderWindow& window)

@@ -1,30 +1,27 @@
 #pragma once
-#include "SFML/Graphics.hpp"
+#include <SFML/Graphics.hpp>
+#include <vector>
 
 namespace Arkanoid
 {
 	class Game;
 
-	class GameStateGameOver
+	class GameStateWin
 	{
 	public:
-		// Returns pointer to the allocated data
 		void Init(Game& game);
 		void Shutdown(Game& game);
 		void HandleWindowEvent(Game& game, const sf::Event& event);
-		void Update(Game& game, float timeDelta);
+		void Update(Game& game, float deltaTime);
 		void Draw(Game& game, sf::RenderWindow& window);
 
 	private:
-		// Resources
 		sf::Font font;
-
-		// UI data
-		sf::RectangleShape background;
-		sf::Text gameOverText;
+		sf::Text winText;
 		sf::Text hintText;
 		sf::Text scoreText;
 		std::vector<sf::Text> recordsTableTexts;
+		sf::RectangleShape background;
 		int finalScore = 0;
 	};
 }

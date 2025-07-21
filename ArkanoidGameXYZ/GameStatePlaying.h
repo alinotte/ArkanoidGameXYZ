@@ -2,6 +2,7 @@
 #include "SFML/Graphics.hpp"
 #include "Ball.h"
 #include "Paddle.h"
+#include "Block.h"
 #include <vector>
 
 namespace Arkanoid
@@ -28,6 +29,7 @@ namespace Arkanoid
 		// Game data
 		Ball ball;
 		Paddle paddle;
+		std::vector<Block> blocks;
 		int score = 0;
 		int lives = 3;
 

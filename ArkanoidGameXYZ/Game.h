@@ -23,6 +23,7 @@ namespace Arkanoid
 		GameOver,
 		ExitDialog,
 		Records,
+		Win
 	};
 
 	class GameState

@@ -26,10 +26,39 @@ namespace Arkanoid
 		ball.SetSpeed(BALL_INITIAL_SPEED);
 		ball.SetStuckToPaddle(true);
 
+		// reset game state
+		score = 0;
+		lives = 3;
+		blocks.clear();
+
+		// init blocks
+		const float startX = (SCREEN_WIDTH - (COLUMNS * (BLOCK_WIDTH + BLOCK_COL_SPACING) - BLOCK_COL_SPACING)) / 2.f;
+		const float startY = 50.f;
+		
+		for (int j = 0; j < ROWS; ++j)
+		{
+			for (int i = 0; i < COLUMNS; ++i)
+			{
+				sf::Vector2f position(
+					startX + i * (BLOCK_WIDTH + BLOCK_COL_SPACING),
+					startY + j * (BLOCK_HEIGHT + BLOCK_ROW_SPACING)
+				);
+
+				sf::Color color;
+				if (j == 0) color = sf::Color::Red;
+				else if (j == 1) color = sf::Color::Green;
+				else color = sf::Color::Blue;
+
+				blocks.emplace_back(position, color);
+			}
+		}
+
 		// init UI
 		scoreText.setFont(font);
 		scoreText.setCharacterSize(24);
-		scoreText.setFillColor(sf::Color::Yellow);
+		scoreText.setFillColor(sf::Color::White);
+		scoreText.setString("Score: " + std::to_string(score));
+		scoreText.setOrigin(GetTextOrigin(scoreText, { 0.f, 0.f }));
 
 		inputHintText.setFont(font);
 		inputHintText.setCharacterSize(24);
@@ -85,6 +114,7 @@ namespace Arkanoid
 			if (lives <= 0)
 			{
 				// game over
+				game.AddRecord(PLAYER_NAME, score);
 				game.PushGameState(GameStateType::GameOver, false);
 			}
 			else
@@ -103,6 +133,24 @@ namespace Arkanoid
 
 			ball.SetVelocity({ std::sin(angle) * ball.GetSpeed(), -std::abs(std::cos(angle) * ball.GetSpeed()) });
 		}
+
+		// ball with blocks
+		for (auto& block : blocks)
+		{
+			if (!block.IsDestroyed() && ball.GetGlobalBounds().intersects(block.GetGlobalBounds()))
+			{
+				block.OnCollision();
+				score += 10;
+
+				sf::Vector2f ballVelocity = ball.GetVelocity();
+				ballVelocity.y = -ballVelocity.y;
+				ball.SetVelocity(ballVelocity);
+
+				break;
+			}
+		}
+
+		
 	}
 
 	void GameStatePlaying::ResetBall()
@@ -130,6 +178,22 @@ namespace Arkanoid
 			ball.Update(timeDelta);
 			CheckCollisions(game);
 		}
+
+		bool allBlocksDestroyed = true;
+		for (const auto& block : blocks)
+		{
+			if (!block.IsDestroyed())
+			{
+				allBlocksDestroyed = false;
+				break;
+			}
+		}
+
+		if (allBlocksDestroyed)
+		{
+			game.AddRecord(PLAYER_NAME, score);
+			game.SwitchGameState(GameStateType::Win);
+		}
 	}
 
 	void GameStatePlaying::Draw(Game& game, sf::RenderWindow& window)
@@ -139,7 +203,12 @@ namespace Arkanoid
 
 		paddle.Draw(window);
 		ball.Draw(window);
+		for (auto& block : blocks)
+		{
+			block.Draw(window);
+		}
 
+		scoreText.setString("Score: " + std::to_string(score));
 		scoreText.setOrigin(GetTextOrigin(scoreText, { 0.f, 0.f }));
 		scoreText.setPosition(10.f, 10.f);
 		window.draw(scoreText);
